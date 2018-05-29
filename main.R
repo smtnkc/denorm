@@ -28,12 +28,9 @@ FormatDf <- function(df) {
 GroupByCol <- function(df, by, method) {
   df <- aggregate(df[, -by], list(toupper(df[, by])), method)
   colnames(df)[1] <- "Symbol"
-  #print(colnames(df))
-  #v.symbols <- unlist(df[, by])
   df$"F635.Median" <- round(df$"F635.Median", 0)
   df$"TrueVal" <- round(df$"TrueVal", 2)
   df$"SeriesVal" <- round(df$"SeriesVal", 2)
-  #row.names(df) <- v.symbols
   return(df)
 }
 
@@ -64,7 +61,7 @@ cat(length(unmapped), "probes cannot be mapped!\n")
 
 ############################################################
 
-for(i in 10:35) {
+for(i in 1:35) {
   state <- i
   source("denorm.R")
   cat(length(unmapped), "probes cannot be mapped!\n")

@@ -37,3 +37,4 @@ rsconnect/
 
 # IGNORE EXPORT DIRECTORY
 EXPORT/
+.Rproj.user

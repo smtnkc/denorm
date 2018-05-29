@@ -54,5 +54,6 @@ df.mapped <- df.clean.raw[df.clean.raw$Symbol != "", ]
 df.mapped <- df.mapped[, c(6,9,10,11)]
 df.mapped <- df.mapped[, c(2,1,3,4)]
 
-df.mapped.grouped <- GroupByCol(df.mapped, by = 1, method = median) # Take average or max?
+df.mapped.grouped <- GroupByCol(df.mapped, by = 1, method = median) # Mean, Median, or Max
 df.wrongs.final <- df.mapped.grouped[df.mapped.grouped$TrueVal != df.mapped.grouped$SeriesVal, ]
+

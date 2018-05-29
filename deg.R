@@ -108,5 +108,3 @@ f.out <- paste(dir.out, "CAD_DEGs_", fc_cutoff, ".csv", sep = "")
 write.csv(degs.cad, file = f.out, row.names = FALSE)
 f.out <- paste(dir.out, "T2D_DEGs_", fc_cutoff, ".csv", sep = "")
 write.csv(degs.t2d, file = f.out, row.names = FALSE)
-
-
