@@ -60,7 +60,7 @@ fc.mets <- GetFC(df.ctrl, df.mets)
 fc.cad <- GetFC(df.ctrl, df.cad)
 fc.t2d <- GetFC(df.ctrl, df.t2d)
 
-################################################ DEGS
+################################################ GET DEGS
 
 GetDegs <- function(df.fc, cutoff) {
   df.degs <- NULL
@@ -68,43 +68,18 @@ GetDegs <- function(df.fc, cutoff) {
   return(df.degs)
 }
 
-PrintStats <- function() {
-  cat("[RA]\t", "MaxFc \U27A1", max(fc.ra$LOG2FC), "\tMinFC \U27A1", min(fc.ra$LOG2FC), "\n")
-  cat("[METS]\t", "MaxFc \U27A1", max(fc.mets$LOG2FC), "\tMinFC \U27A1", min(fc.mets$LOG2FC), "\n")
-  cat("[CAD]\t", "MaxFc \U27A1", max(fc.cad$LOG2FC), "\tMinFC \U27A1", min(fc.cad$LOG2FC), "\n")
-  cat("[T2D]\t", "MaxFc \U27A1", max(fc.t2d$LOG2FC), "\tMinFC \U27A1", min(fc.t2d$LOG2FC), "\n")
-  
-  fc_neg <- paste("FC<=", fc_cutoff*(-1), " \U27A1", sep = "")
-  fc_pos <- paste("\tFC>=", fc_cutoff, " \U27A1", sep = "")
-  
-  cat("\n[RA]\t", fc_neg, nrow(degs.ra[degs.ra$LOG2FC < 0, ]),
-      fc_pos, nrow(degs.ra[degs.ra$LOG2FC > 0, ]), "\n")
-  
-  cat("[METS]\t", fc_neg, nrow(degs.mets[degs.mets$LOG2FC < 0, ]),
-      fc_pos, nrow(degs.mets[degs.mets$LOG2FC > 0, ]), "\n")
-  
-  cat("[CAD]\t", fc_neg, nrow(degs.cad[degs.cad$LOG2FC < 0, ]),
-      fc_pos, nrow(degs.cad[degs.cad$LOG2FC > 0, ]), "\n")
-  
-  cat("[T2D]\t", fc_neg, nrow(degs.t2d[degs.t2d$LOG2FC < 0, ]),
-      fc_pos, nrow(degs.t2d[degs.t2d$LOG2FC > 0, ]), "\n")
-  
-}
+cutoff <- c(2,2,2,2)
 
-fc_cutoff <- 2
+degs.ra   <- GetDegs(fc.ra,   cutoff[1])
+degs.mets <- GetDegs(fc.mets, cutoff[2])
+degs.cad  <- GetDegs(fc.cad,  cutoff[3])
+degs.t2d  <- GetDegs(fc.t2d,  cutoff[4])
 
-degs.ra <- GetDegs(fc.ra, fc_cutoff)
-degs.mets <- GetDegs(fc.mets, fc_cutoff)
-degs.cad <- GetDegs(fc.cad, fc_cutoff)
-degs.t2d <- GetDegs(fc.t2d, fc_cutoff)
-
-PrintStats()
-
-f.out <- paste(dir.out, "RA_DEGs_", fc_cutoff, ".csv", sep = "")
+f.out <- paste(dir.out, "RA_DEGs_", cutoff[1], ".csv", sep = "")
 write.csv(degs.ra, file = f.out, row.names = FALSE)
-f.out <- paste(dir.out, "METS_DEGs_", fc_cutoff,".csv", sep = "")
+f.out <- paste(dir.out, "METS_DEGs_", cutoff[2],".csv", sep = "")
 write.csv(degs.mets, file = f.out, row.names = FALSE)
-f.out <- paste(dir.out, "CAD_DEGs_", fc_cutoff, ".csv", sep = "")
+f.out <- paste(dir.out, "CAD_DEGs_", cutoff[3], ".csv", sep = "")
 write.csv(degs.cad, file = f.out, row.names = FALSE)
-f.out <- paste(dir.out, "T2D_DEGs_", fc_cutoff, ".csv", sep = "")
+f.out <- paste(dir.out, "T2D_DEGs_", cutoff[4], ".csv", sep = "")
 write.csv(degs.t2d, file = f.out, row.names = FALSE)
