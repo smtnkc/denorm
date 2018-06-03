@@ -38,3 +38,4 @@ rsconnect/
 # IGNORE EXPORT DIRECTORY
 EXPORT/
 .Rproj.user
+IMPORT/PLINKS.tsv
