@@ -50,63 +50,6 @@ GetRawVals <- function(f.names, states) {
 
 df.raw.all <- GetRawVals(f.names, c(1:35))
 
-GetMedian <- function(df) {
-  df.result <- as.data.frame(df[, 1])
-  colnames(df.result)[1] <- "Symbol"
-  df.result[, "MedVal"] <- NA
-  for(i in 1:nrow(df))
-    df.result[i, "MedVal"] <- median(as.numeric(df[i, 2:ncol(df)]))
-  
-  return(df.result)
-}
-
-GetFC <- function(df.ctrl, df.disease) {
-  df.result <- as.data.frame(df.ctrl[, 1])
-  colnames(df.result)[1] <- "Symbol"
-  df.result[, "LOG2FC"] <- NA
-  
-  for(i in 1:nrow(df.result))
-    df.result[i , "LOG2FC"] <- round(log2(df.disease[i, "MedVal"]/df.ctrl[i, "MedVal"]), 2)
-  
-  return(df.result)
-}
-
-GetDegs <- function(df.fc, cutoff) {
-  df.degs <- NULL
-  df.degs <- df.fc[abs(df.fc$LOG2FC) >= cutoff, ]
-  return(df.degs)
-}
-
-PrintStats <- function(dflist) {
-  cat("[GROUP]\t[-T]\t[+T]\t[NROW]\t[MAX]\t[MIN]\n")
-  for(i in 1:length(dflist)) {
-    df <- dflist[[i]]
-    cat(paste(names(dflist)[i], "_", cutoff[i], sep = ""), "\t")
-    cat(nrow(df[df$LOG2FC <= cutoff[i]*(-1), ]), "\t")
-    cat(nrow(df[df$LOG2FC >= cutoff[i], ]), "\t")
-    cat(nrow(df), "\t")
-    cat(max(df$LOG2FC), "\t")
-    cat(min(df$LOG2FC), "\n")
-  }
-}
-
-GetInters <- function(df.list) {
-  list.int <- list(
-    RA_METS  = Reduce(intersect, list((df.list$RA)$Symbol, (df.list$METS)$Symbol)),
-    RA_CAD   = Reduce(intersect, list((df.list$RA)$Symbol, (df.list$CAD)$Symbol)),
-    RA_T2D   = Reduce(intersect, list((df.list$RA)$Symbol, (df.list$T2D)$Symbol)),
-    METS_T2D = Reduce(intersect, list((df.list$METS)$Symbol, (df.list$T2D)$Symbol)),
-    METS_CAD = Reduce(intersect, list((df.list$METS)$Symbol, (df.list$CAD)$Symbol)),
-    CAD_T2D  = Reduce(intersect, list((df.list$CAD)$Symbol, (df.list$T2D)$Symbol)),
-    
-    CAD_RA_T2D   = Reduce(intersect, list((df.list$CAD)$Symbol, (df.list$RA)$Symbol, (df.list$T2D)$Symbol)),
-    CAD_RA_METS  = Reduce(intersect, list((df.list$CAD)$Symbol, (df.list$RA)$Symbol, (df.list$METS)$Symbol)),
-    CAD_T2D_METS = Reduce(intersect, list((df.list$CAD)$Symbol, (df.list$T2D)$Symbol, (df.list$METS)$Symbol)),
-    RA_T2D_METS  = Reduce(intersect, list((df.list$RA)$Symbol, (df.list$T2D)$Symbol, (df.list$METS)$Symbol))
-  )
-  return(list.int)
-}
-
 MapProbes <- function(df.gpl, df.map) {
   
   df.clean.map <- df.map[df.map$Name != "", ]
@@ -130,6 +73,8 @@ MapProbes <- function(df.gpl, df.map) {
   cat(length(unmapped), "probes cannot be mapped!\n")
   return(df.clean.gpl)
 }
+
+########################################### deg.R
 
 GetStringMap <- function(df.raw) {
   
@@ -159,12 +104,12 @@ GetStringMap <- function(df.raw) {
   return(string.map)
 }
 
-FilterPlinks <- function(df.plinks, string.map) {
+FilterPlinks <- function(df.plinks, string.map, comb_score_cutoff) {
   df.result <- df.plinks
   cat("Total plinks =", nrow(df.result),"\n")
   
   # Omit insignificant links
-  df.result <- df.result[df.result$combined_score >= 700, ]
+  df.result <- df.result[df.result$combined_score >= comb_score_cutoff, ]
   cat("Significant plinks =", nrow(df.result),"\n")
   
   # Omit unmapped proteins
@@ -182,18 +127,232 @@ GetGlinks <- function(df.plinks, string.map) {
   return(df.glinks)
 }
 
-GetMSGs <- function(df.raw.all) {
-  if(file.exists("EXPORT/MSGENES_14422.csv")) {
-    print("Reading from existing file!")
-    list.msgs <- read.csv("EXPORT/MSGENES_14422.csv", stringsAsFactors = FALSE, header = TRUE)$Symbol
+GetMedian <- function(df) {
+  df.result <- as.data.frame(df[, 1])
+  colnames(df.result)[1] <- "Symbol"
+  df.result[, "MedVal"] <- NA
+  for(i in 1:nrow(df))
+    df.result[i, "MedVal"] <- median(as.numeric(df[i, 2:ncol(df)]))
+  
+  return(df.result)
+}
+
+GetFC <- function(df.ctrl, df.disease) {
+  df.result <- as.data.frame(df.ctrl[, 1])
+  colnames(df.result)[1] <- "Symbol"
+  df.result[, "LOG2FC"] <- NA
+  
+  for(i in 1:nrow(df.result))
+    df.result[i , "LOG2FC"] <- round(log2(df.disease[i, "MedVal"]/df.ctrl[i, "MedVal"]), 2)
+  
+  return(df.result)
+}
+
+GetDegs <- function(fc_cutoff) {
+  fname <- paste(dir.deg, "RA_DEGs_", fc_cutoff, ".csv", sep = "")
+  if(file.exists(fname)) {
+    cat("fc_cutoff =", fc_cutoff,"\nReading DEGs from existing files...\n")
+    list.degs <- list(
+      RA   = as.data.frame(read.csv(paste(dir.deg, "RA_DEGs_",   fc_cutoff, ".csv", sep = ""), header = TRUE, stringsAsFactors = FALSE)),
+      METS = as.data.frame(read.csv(paste(dir.deg, "METS_DEGs_", fc_cutoff, ".csv", sep = ""), header = TRUE, stringsAsFactors = FALSE)),
+      CAD  = as.data.frame(read.csv(paste(dir.deg, "CAD_DEGs_",  fc_cutoff, ".csv", sep = ""), header = TRUE, stringsAsFactors = FALSE)),
+      T2D  = as.data.frame(read.csv(paste(dir.deg, "T2D_DEGs_",  fc_cutoff, ".csv", sep = ""), header = TRUE, stringsAsFactors = FALSE))
+    )
+  }
+  else {
+    cat("fc_cutoff =", fc_cutoff,"\nGenerating DEGs...\n")
+    list.medians <- list (
+      CTRL = GetMedian(GetRawVals(f.names, c(1:9))),
+      RA   = GetMedian(GetRawVals(f.names, c(10:15))),
+      METS = GetMedian(GetRawVals(f.names, c(16:21))),
+      CAD  = GetMedian(GetRawVals(f.names, c(22:27))),
+      T2D  = GetMedian(GetRawVals(f.names, c(28:35)))
+    )
+    
+    list.FC <- list (
+      RA   = GetFC(list.medians$CTRL, list.medians$RA),
+      METS = GetFC(list.medians$CTRL, list.medians$METS),
+      CAD  = GetFC(list.medians$CTRL, list.medians$CAD),
+      T2D  = GetFC(list.medians$CTRL, list.medians$T2D)
+    )
+    
+    list.degs <- list(
+      RA   = list.FC[["RA"]][abs(list.FC[["RA"]]$LOG2FC) >= fc_cutoff, ],
+      METS = list.FC[["METS"]][abs(list.FC[["METS"]]$LOG2FC) >= fc_cutoff, ],
+      CAD  = list.FC[["CAD"]][abs(list.FC[["CAD"]]$LOG2FC) >= fc_cutoff, ],
+      T2D  = list.FC[["T2D"]][abs(list.FC[["T2D"]]$LOG2FC) >= fc_cutoff, ]
+    )
+    ExportDegs(list.degs, fc_cutoff)
+    cat("DEG files have been exported for the next time!\n")
+  }
+  cat("DONE!\n")
+  return(list.degs)
+}
+
+ExportDegs <- function(list.degs, fc_cutoff) {
+  f.out <- paste(dir.deg, "RA_DEGs_", fc_cutoff, ".csv", sep = "")
+  write.csv(list.degs$RA, file = f.out, row.names = FALSE)
+  f.out <- paste(dir.deg, "METS_DEGs_", fc_cutoff,".csv", sep = "")
+  write.csv(list.degs$METS, file = f.out, row.names = FALSE)
+  f.out <- paste(dir.deg, "CAD_DEGs_", fc_cutoff, ".csv", sep = "")
+  write.csv(list.degs$CAD, file = f.out, row.names = FALSE)
+  f.out <- paste(dir.deg, "T2D_DEGs_", fc_cutoff, ".csv", sep = "")
+  write.csv(list.degs$T2D, file = f.out, row.names = FALSE)
+}
+
+GetMSGenes <- function(df.raw.all, comb_score_cutoff) {
+  fname <- paste("EXPORT/MS_GENES_", comb_score_cutoff, ".csv", sep = "")
+  if(file.exists(fname)) {
+    cat("Reading from existing file:", fname, "\n")
+    list.msgenes <- read.csv(fname, stringsAsFactors = FALSE, header = TRUE)$Symbol
   }
   else {
     string.map <- GetStringMap(df.raw.all) # list
     df.plinks <- as.data.frame(fread("IMPORT/PLINKS.tsv", header = TRUE, sep = ' '))[, c(1, 2, 16)]
-    df.plinks <- FilterPlinks(df.plinks, string.map)
+    df.plinks <- FilterPlinks(df.plinks, string.map, comb_score_cutoff)
     df.glinks <- GetGlinks(df.plinks, string.map)
-    list.msgs <- unique(as.vector(rbind(df.glinks$gene1, df.glinks$gene2))) # mapped sig genes
-    write.csv(as.data.frame(cbind(Symbol = list.msgs)), file = "EXPORT/MSGENES_14422.csv", row.names = FALSE)
+    list.msgenes <- unique(as.vector(rbind(df.glinks$gene1, df.glinks$gene2))) # mapped sig genes
+    write.csv(as.data.frame(cbind(Symbol = list.msgenes)), file = fname, row.names = FALSE)
   }
-  return(list.msgs)
+  return(list.msgenes)
+}
+
+PrintDegStats <- function(dflist, fc_cutoff) {
+  cat("[GROUP]\t[-T]\t[+T]\t[NROW]\t[MAX]\t[MIN]\n")
+  for(i in 1:length(dflist)) {
+    df <- dflist[[i]]
+    cat(paste(names(dflist)[i], "_", fc_cutoff, sep = ""), "\t")
+    cat(nrow(df[df$LOG2FC <= fc_cutoff*(-1), ]), "\t")
+    cat(nrow(df[df$LOG2FC >= fc_cutoff, ]), "\t")
+    cat(nrow(df), "\t")
+    cat(max(df$LOG2FC), "\t")
+    cat(min(df$LOG2FC), "\n")
+  }
+}
+
+########################################### cor.R
+
+GetRawMSDegs <- function(df.raw.all, list.msdegs) {
+  # raw vals for mapped sig genes for each group included CTRL
+  list.raw.msdegs <- list(
+    RA   = df.raw.all[df.raw.all$Symbol %in% list.msdegs$RA$Symbol,   c(1:16)],
+    METS = df.raw.all[df.raw.all$Symbol %in% list.msdegs$METS$Symbol, c(1:10,17:22)],
+    CAD  = df.raw.all[df.raw.all$Symbol %in% list.msdegs$CAD$Symbol,  c(1:10,23:28)],
+    T2D  = df.raw.all[df.raw.all$Symbol %in% list.msdegs$T2D$Symbol,  c(1:10,29:36)]
+  )
+  
+  # set first col as rownames for each group
+  for(i in 1:length(list.raw.msdegs)) {
+    row.names(list.raw.msdegs[[i]]) <- list.raw.msdegs[[i]]$Symbol
+    list.raw.msdegs[[i]] <- list.raw.msdegs[[i]][, -1]
+  }
+  return(list.raw.msdegs)
+}
+
+GetCorMatrices <- function(list.raw.msds) {
+  list.cors <- list()
+  for(i in 1:length(list.raw.msds)) {
+    df.cor <- round(cor(x = t(list.raw.msds[[i]]), y = NULL, method = c("pearson")),2)
+    group <- names(list.raw.msds)[i]
+    list.cors[[group]] <- df.cor
+    fname = paste("EXPORT/COR/", group, ".csv", sep = "")
+    write.csv(df.cor, file = fname, row.names = TRUE)
+  }
+  return(list.cors)
+}
+
+GetMSDegLinks <- function(df.raw.all, list.cors, comb_score_cutoff) {
+  fname <- paste("EXPORT/MS_GLINKS_", comb_score_cutoff, ".csv", sep = "")
+  if(file.exists(fname)) {
+    cat("Reading from existing file:", fname, "\n")
+    df.msglinks <- as.data.frame(read.csv(fname, stringsAsFactors = FALSE, header = TRUE))
+  }
+  else {
+    string.map <- GetStringMap(df.raw.all) # list
+    df.plinks <- as.data.frame(fread("IMPORT/PLINKS.tsv", header = TRUE, sep = ' '))[, c(1, 2, 16)]
+    df.plinks <- FilterPlinks(df.plinks, string.map, comb_score_cutoff)
+    df.msglinks <- GetGlinks(df.plinks, string.map)
+    write.csv(df.msglinks, file = fname, row.names = FALSE)
+  }
+  rownames(df.msglinks) <- NULL
+  
+  list.msdeglinks <- list()
+  for(i in 1:length(list.cors)) {
+    df.temp <- df.msglinks[df.msglinks$gene1 %in% row.names(list.cors[[i]]), 1:2]
+    df.temp <- df.temp[df.temp$gene2 %in% row.names(list.cors[[i]]), ]
+    list.msdeglinks[[names(list.cors)[i]]] <- df.temp
+  }
+  return(list.msdeglinks)
+}
+
+GetCorEdges <- function(list.msdeglinks, list.cor.matrices) {
+  list.pcor <- list()
+  for(i in 1:length(list.msdeglinks)) {
+    df.pcor <- list.msdeglinks[[i]]
+    if(nrow(list.msdeglinks[[i]]) == 0) {
+      df.pcor$pearson <- numeric()
+      print(dim(df.pcor))
+    }
+    else {
+      df.pcor[, "pearson"] <- NA
+      # print(dim(df.pcor))
+      df.matrix <- list.cor.matrices[[i]]
+      
+      for(j in 1:nrow(list.msdeglinks[[i]])) {
+        corval <- df.matrix[list.msdeglinks[[i]]$gene1[j], list.msdeglinks[[i]]$gene2[j]]
+        df.pcor[j, "pearson"] <- corval
+      }
+    }
+    list.pcor[[names(list.msdeglinks)[i]]] <- df.pcor
+  }
+  return(list.pcor)
+}
+
+GetSigCorEdges <- function(list.cor.edges, p_val) {
+  list.sig.cor.edges <- list()
+  for(i in 1:length(list.cor.edges)) {
+    df <- list.cor.edges[[i]]
+    if(names(list.cor.edges)[i] == "T2D") {
+      if(p_val == 0.05) coef <- 0.482
+      else if(p_val == 0.01) coef <- 0.606
+    }
+    else {
+      if(p_val == 0.05) coef <- 0.514
+      else if(p_val == 0.01) coef <- 0.641
+    }
+    
+    list.sig.cor.edges[[names(list.cor.edges)[i]]] <-
+      df[abs(df$pearson) >= coef, ]
+  }
+  return(list.sig.cor.edges)
+}
+
+GetSigCorGenes <- function(list.sig.cor.edges) {
+  list.sig.cor.genes <- list()
+  for(i in 1:length(list.sig.cor.edges)) {
+    df <- list.sig.cor.edges[[i]]
+    genes <- unique(as.character(rbind(df$gene1, df$gene2)))
+    list.sig.cor.genes[[names(list.sig.cor.edges)[i]]] <- genes
+  }
+  return(list.sig.cor.genes)
+}
+
+GetInterDegs <- function(df.list) {
+  list.int <- list(
+    RA_METS  = Reduce(intersect, list(df.list$RA, df.list$METS)),
+    RA_CAD   = Reduce(intersect, list(df.list$RA, df.list$CAD)),
+    RA_T2D   = Reduce(intersect, list(df.list$RA, df.list$T2D)),
+    METS_T2D = Reduce(intersect, list(df.list$METS, df.list$T2D)),
+    METS_CAD = Reduce(intersect, list(df.list$METS, df.list$CAD)),
+    CAD_T2D  = Reduce(intersect, list(df.list$CAD, df.list$T2D)),
+    
+    CAD_RA_T2D   = Reduce(intersect, list(df.list$CAD, df.list$RA, df.list$T2D)),
+    CAD_RA_METS  = Reduce(intersect, list(df.list$CAD, df.list$RA, df.list$METS)),
+    CAD_T2D_METS = Reduce(intersect, list(df.list$CAD, df.list$T2D, df.list$METS)),
+    RA_T2D_METS  = Reduce(intersect, list(df.list$RA, df.list$T2D, df.list$METS)),
+    
+    RA_T2D_METS_CAD  = Reduce(intersect, list(df.list$RA, df.list$T2D,
+                                              df.list$METS, df.list$CAD))
+  )
+  return(list.int)
 }
