@@ -327,7 +327,7 @@ GetSigCorEdges <- function(list.cor.edges, p_val) {
   return(list.sig.cor.edges)
 }
 
-GetSigCorGenes <- function(list.sig.cor.edges) {
+GetSigCorNodes <- function(list.sig.cor.edges) {
   list.sig.cor.genes <- list()
   for(i in 1:length(list.sig.cor.edges)) {
     df <- list.sig.cor.edges[[i]]
@@ -337,7 +337,7 @@ GetSigCorGenes <- function(list.sig.cor.edges) {
   return(list.sig.cor.genes)
 }
 
-GetInterDegs <- function(df.list) {
+GetInterNodes <- function(df.list) {
   list.int <- list(
     RA_METS  = Reduce(intersect, list(df.list$RA, df.list$METS)),
     RA_CAD   = Reduce(intersect, list(df.list$RA, df.list$CAD)),
@@ -353,6 +353,41 @@ GetInterDegs <- function(df.list) {
     
     RA_T2D_METS_CAD  = Reduce(intersect, list(df.list$RA, df.list$T2D,
                                               df.list$METS, df.list$CAD))
+  )
+  return(list.int)
+}
+
+GetExtendedEdgeList <- function(df) {
+  list.ext <- list()
+  for(i in 1:nrow(df)) {
+    pair <- c(df[i, "gene1"], df[i, "gene2"])
+    list.ext <- append(list.ext, list(pair))
+    # list.ext <- append(list.ext, list(rev(pair)))
+  }
+  list.ext <- unique(list.ext)
+  return(list.ext)
+}
+
+GetInterEdges <- function(df.list) {
+  eel_RA   <- GetExtendedEdgeList(df.list$RA)
+  eel_METS <- GetExtendedEdgeList(df.list$METS)
+  eel_CAD  <- GetExtendedEdgeList(df.list$CAD)
+  eel_T2D  <- GetExtendedEdgeList(df.list$T2D)
+  
+  list.int <- list(
+    RA_METS  = Reduce(intersect, list(eel_RA, eel_METS)),
+    RA_CAD   = Reduce(intersect, list(eel_RA, eel_CAD)),
+    RA_T2D   = Reduce(intersect, list(eel_RA, eel_T2D)),
+    METS_T2D = Reduce(intersect, list(eel_METS, eel_T2D)),
+    METS_CAD = Reduce(intersect, list(eel_METS, eel_CAD)),
+    CAD_T2D  = Reduce(intersect, list(eel_CAD, eel_T2D)),
+    
+    CAD_RA_T2D   = Reduce(intersect, list(eel_CAD, eel_RA, eel_T2D)),
+    CAD_RA_METS  = Reduce(intersect, list(eel_CAD, eel_RA, eel_METS)),
+    CAD_T2D_METS = Reduce(intersect, list(eel_CAD, eel_T2D, eel_METS)),
+    RA_T2D_METS  = Reduce(intersect, list(eel_RA, eel_T2D, eel_METS)),
+    
+    RA_T2D_METS_CAD  = Reduce(intersect, list(eel_RA, eel_T2D, eel_METS, eel_CAD))
   )
   return(list.int)
 }

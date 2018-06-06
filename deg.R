@@ -1,6 +1,6 @@
 p_val <- 0.05
 fc_cutoff <- 1.5
-comb_score_cutoff <- 500
+comb_score_cutoff <- 700
 
 list.degs <- GetDegs(fc_cutoff)
 

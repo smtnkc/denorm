@@ -4,5 +4,7 @@ list.msdeglinks <- GetMSDegLinks(df.raw.all, list.cor.matrices, comb_score_cutof
 list.cor.edges <- GetCorEdges(list.msdeglinks, list.cor.matrices)
 
 list.sig.cor.edges <- GetSigCorEdges(list.cor.edges, p_val)
-list.sig.cor.genes <- GetSigCorGenes(list.sig.cor.edges)
-list.inter.degs <- GetInterDegs(list.sig.cor.genes)
+list.sig.cor.nodes <- GetSigCorNodes(list.sig.cor.edges)
+list.inter.nodes <- GetInterNodes(list.sig.cor.nodes)
+list.inter.edges <- GetInterEdges(list.sig.cor.edges)
+
