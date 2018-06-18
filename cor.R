@@ -8,3 +8,5 @@ list.sig.cor.nodes <- GetSigCorNodes(list.sig.cor.edges)
 list.inter.nodes <- GetInterNodes(list.sig.cor.nodes)
 list.inter.edges <- GetInterEdges(list.sig.cor.edges)
 
+ExportEdgeLists(list.sig.cor.edges, p_val, comb_score_cutoff, fc_cutoff)
+ExportInterEdges(list.inter.edges, p_val, comb_score_cutoff, fc_cutoff)

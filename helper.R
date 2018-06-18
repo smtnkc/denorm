@@ -391,3 +391,34 @@ GetInterEdges <- function(df.list) {
   )
   return(list.int)
 }
+
+ExportEdgeLists <- function(list, p_val, comb_score_cutoff, fc_cutoff) {
+  for(i in 1:length(list)) {
+    fname = paste("EXPORT/EDGELIST/", names(list)[i], "_",
+                  comb_score_cutoff, "_FC", fc_cutoff, "_P",
+                  gsub("\\.", "", p_val), ".csv", sep = "")
+    write.csv(list[[i]], fname, row.names = FALSE)
+  }
+}
+
+ExportInterEdges <- function(list, p_val, comb_score_cutoff, fc_cutoff) {
+  for(i in 1:length(list)) {
+    fname = paste("EXPORT/INTERS/", names(list)[i], "_",
+                  comb_score_cutoff, "_FC", fc_cutoff, "_P",
+                  gsub("\\.", "", p_val), ".csv", sep = "")
+    df <- data.frame(matrix(ncol = 2, nrow = 0))
+    for(j in 1:length(list[[i]])) {
+      df <- rbind(df, data.frame(gene1 = list[[i]][[j]][1], gene2 = list[[i]][[j]][2]))
+    }
+    colnames(df) <- c("gene1", "gene2")
+    write.csv(df, fname, row.names = FALSE)
+  }
+}
+
+ExportHubs <- function(list.hubs.ext) {
+  df <- cbind(list.hubs.ext[[1]], list.hubs.ext[[2]], list.hubs.ext[[3]], list.hubs.ext[[4]])
+  colnames(df) <- c("RA_Gene", "RA_Degree", "METS_Gene", "METS_Degree",
+                    "CAD_Gene", "CAD_Degree", "T2D_Gene", "T2D_Degree")
+  fname <- paste("EXPORT/HUBS/", "Degree_HUBS.csv", sep = "")
+  write.csv(df, fname, row.names = FALSE)
+}
